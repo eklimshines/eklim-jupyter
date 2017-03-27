@@ -47,8 +47,8 @@ H = h*genP256
 
 ck = "{0:032X}".format(getrandbits(128))
 ek = "{0:032X}".format(getrandbits(128))
-i = randint(1, radix_32)
-j = randint(1,20)
+i = randint(0, radix_16-1)
+j = randint(0, 19)
 
 x_cert = (i * radix_32 + j) * radix_32
 x_enc = (((radix_32 - 1) * radix_32 + i) * radix_32 + j) * radix_32
@@ -64,11 +64,11 @@ print("\"be\": big-endian")
 print("Curve: NISTp256")
 print("---------------")
 
-print("i (32 bits):")
-print(Hex(i, radix_32) + os.linesep)
+print("i (16 bits):")
+print(Hex(i, radix_16) + os.linesep)
 
-print("j (in range [1,20], padded to 32 bits) =")
-print(Hex(j, radix_32) + os.linesep)
+print("j (in range [0,19], padded to 16 bits) =")
+print(Hex(j, radix_16) + os.linesep)
 
 print("Expanding Certificate key pair (a,A)")
 print("------------------------------------")
