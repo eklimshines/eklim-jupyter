@@ -10,7 +10,7 @@ radix_8 = 2**8
 
 genP256 = ECPoint(secp256r1.gx, secp256r1.gy, secp256r1)
 
-def implicitCertGen(tbsCert, RU, dCA, k=None):
+def implicitCertGen(tbsCert, RU, dCA, k=None, sec4=False):
     '''
     Implicit Certificate Generation as per SEC4 Sec 3.4
 
@@ -36,6 +36,14 @@ def implicitCertGen(tbsCert, RU, dCA, k=None):
     - r:       {octet string} private key reconstruction value
     [- k:      {octet string} CA's ephemeral key, should be kept secret
                               but is output from this function for test purposes]
+    [- sec4:   {boolean} when True, the leftmost floor(log_2(n)) bits of the hash output are used in the computation
+               as specified in SEC4, which are obtained by a 1-bit shift right of the hash output.
+               When False, the entire hash output is used as per 1609.2 guidance note 10 (March 7, 2017).
+               Note that the hash output is effectively reduced mod n, the curve order, in the computation of the
+               private key reconstruction value, but is not explicitly reduced mod n before the public key reconstruction,
+               which may result in the point at infinity in the course of the EC scalar multiplication that should be
+               checked for. Also the EC scalar multiplication would then have to be checked to be operating correctly for
+               scalar values larger than n]
     '''
     r_len = 256/8
     assert len(dCA) == r_len*2, "input dCA must be of octet length: " + str(r_len)
@@ -58,16 +66,20 @@ def implicitCertGen(tbsCert, RU, dCA, k=None):
     # CertU = tbsCert || PU (see note above)
     CertU = tbsCert + PU_os
 
-    # e = leftmost floor(log_2 n) bits of SHA-256(CertU), i.e.
-    # e = Shiftright(SHA-256(CertU)) by 1 bit
     e = sha256(CertU.decode('hex')).hexdigest()
-    e_long = long(e, 16)/2
+    if (sec4):
+        # e = leftmost floor(log_2 n) bits of SHA-256(CertU), i.e.
+        # e = Shiftright(SHA-256(CertU)) by 1 bit
+        e_long = long(e, 16)/2
+    else: # 1609.2, guidance note 10
+        # e = full hash value
+        e_long = long(e, 16)
 
     r_long = (e_long * k_long + long(dCA, 16)) % genP256.ecc.n
     r = "{0:0>{width}X}".format(r_long, width=bitLen(genP256.ecc.n)*2/8)
     return PU, CertU, r, k
 
-def reconstructPrivateKey(kU, CertU, r):
+def reconstructPrivateKey(kU, CertU, r, sec4=False):
     '''
     Implicit Certificate Private Key Reconstruction as per SEC4 Sec. 3.6
 
@@ -75,6 +87,7 @@ def reconstructPrivateKey(kU, CertU, r):
     - kU:    {octet string} User's certificate request private key, corresponding to RU
     - CertU: {octet string} tbsCert || PU (see note above)
     - r:     {octet string} private key reconstruction value
+    [- sec4: {boolean} see notes in implicitCertGen()]
 
     Output:
     - dU: {octet string} User's (reconstructed) private key
@@ -85,10 +98,13 @@ def reconstructPrivateKey(kU, CertU, r):
     and is verified to be equal to QU calculated by reconstruction (see function below)
     This check is performed in the tests, outside this function.
     '''
-
-    # e = leftmost floor(log_2 n) bits of SHA-256(CertU)
     e = sha256(CertU.decode('hex')).hexdigest()
-    e_long = long(e, 16)/2
+    if (sec4):
+        # e = leftmost floor(log_2 n) bits of SHA-256(CertU)
+        e_long = long(e, 16)/2
+    else: # 1609.2, guidance note 10
+        # e = full hash value
+        e_long = long(e, 16)
 
     # Compute U's private key
     # dU = (e * kU + r) mod n
@@ -97,7 +113,7 @@ def reconstructPrivateKey(kU, CertU, r):
 
     return dU
 
-def reconstructPublicKey(CertU, QCA):
+def reconstructPublicKey(CertU, QCA, sec4=False):
     '''
     Implicit Certificate Public Key Reconstruction as per SEC4 Sec. 3.5
     Can be performed by any party.
@@ -105,6 +121,7 @@ def reconstructPublicKey(CertU, QCA):
     Inputs:
     - CertU: {octet string} tbsCert || PU (see note above)
     - QCA:   {ec256 point}  CA's public key
+    [- sec4: {boolean} see notes in implicitCertGen()]
 
     Output:
     - QU: {ec256_point} User's (reconstructed) public key
@@ -117,10 +134,14 @@ def reconstructPublicKey(CertU, QCA):
     # convert PU_os to an ec256_point
     PU = ECPoint(secp256r1, PU_os)
 
-    # e = leftmost floor(log_2 n) bits of SHA-256(CertU)
     # Read note above about what is actually the input to SHA-256
     e = sha256(CertU.decode('hex')).hexdigest()
-    e_long = long(e, 16)/2
+    if (sec4):
+        # e = leftmost floor(log_2 n) bits of SHA-256(CertU)
+        e_long = long(e, 16)/2
+    else: # 1609.2, guidance note 10
+        # e = full hash value
+        e_long = long(e, 16)
 
     # Compute U's public key
     QU = e_long*PU + QCA
@@ -202,7 +223,7 @@ for k in k_list:
     print("User's certificate request private key:")
     print("kU = 0x" + kU)
     cArrayDef("", "kU", long(kU, 16), len(kU)/2, radix_8, False); print(os.linesep)
-    
+
     print("User's certificate request public key (x-coordinate):")
     print("RUx = 0x" + RUx)
     cArrayDef("", "RUx", long(RUx, 16), len(RUx)/2, radix_8, False); print(os.linesep)
@@ -226,7 +247,7 @@ for k in k_list:
     print("CA's ephemeral private key (should be chosen at random by CA for every cert request):")
     print("k = 0x" + k)
     cArrayDef("", "k", long(k, 16), len(k)/2, radix_8, False); print(os.linesep)
-    
+
     print("User's public key reconstruction point (x-coordinate):")
     print("PUx = " + Hex(PU.x, radix_256))
     cArrayDef("", "PUx", PU.x, 256/8, radix_8, False); print(os.linesep)
@@ -238,15 +259,15 @@ for k in k_list:
     print("User's CertU (encoded in this way for illustration purpose and testing only):")
     print("CertU = 0x" + CertU)
     cArrayDef("", "CertU", long(CertU, 16), len(CertU)/2, radix_8, False); print(os.linesep)
-    
+
     print("User's private key reconstruction value:")
     print("r = 0x" + r)
     cArrayDef("", "r", long(r, 16), len(r)/2, radix_8, False); print(os.linesep)
-        
+
     print("User's reconstructed private key:")
     print("dU = 0x" + dU)
     cArrayDef("", "dU", long(dU, 16), len(dU)/2, radix_8, False); print(os.linesep)
-    
+
     print("User's reconstructed public key (x-coordinate):")
     print("QUx = " + Hex(QU.x, radix_256))
     cArrayDef("", "QUx", QU.x, 256/8, radix_8, False); print(os.linesep)
