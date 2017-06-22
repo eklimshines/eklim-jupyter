@@ -70,3 +70,8 @@ def lelist2int(nlist, radix):
     nlist_rev.reverse()
 
     return belist2int(nlist_rev, radix)
+
+def long2hexstr(n, bitlen):
+    '''Converts n to a hex string, where n is of bitlength bitlen
+    '''
+    return "{0:0>{width}X}".format(n, width=((bitlen*2)+7)/8)

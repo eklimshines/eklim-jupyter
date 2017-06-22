@@ -1,4 +1,4 @@
-from types import * 
+from types import *
 from random import *
 from hashlib import *
 
@@ -40,7 +40,7 @@ def egcd(a, b):
    else:
       g, y, x = egcd(b % a, a)
       return (g, x - (b // a) * y, y)
- 
+
 def modinv(a, m):
    a = a % m
    g, x, y = egcd(a, m)
@@ -89,18 +89,18 @@ class ECurve:
       self.n  = inthex_to_long(n)
       self.h  = inthex_to_long(h)
    def __cmp__(self, c):
-      if(self.p  == c.p  and 
-         self.a  == c.a  and 
-         self.b  == c.b  and 
-         self.gx == c.gx and 
-         self.gy == c.gy and 
-         self.n  == c.n  and 
+      if(self.p  == c.p  and
+         self.a  == c.a  and
+         self.b  == c.b  and
+         self.gx == c.gx and
+         self.gy == c.gy and
+         self.n  == c.n  and
          self.h  == c.h ):
          return 0
       else:
          return 1
    def __str__(self):
-      return self.name 
+      return self.name
 
 #
 # Curves constant objects
@@ -168,12 +168,31 @@ class ECPoint:
             self.ecc = args[0]
             self.input(args[1])
             return
+         if (args[0] in ["compressed-y-0", "compressed-y-1"]):
+         # Case of 1609.2 point format
+         # For compressed points:
+         # args[0] = {"compressed-y-0", "compressed-y-1"}
+         # args[1] is a hex string for x-coord.
+         # create an octet-string for the compressed point to input (import) it
+         # this is a bit convoluted. To avoid it, we can factor out the
+         # decompression steps
+            self.ecc = secp256r1 # default curve
+            l = bitLen(self.ecc.p)
+            os_len = 2*((l-1)/8+1)
+            if(args[0] == "compressed-y-0"):
+                flag = "02"
+            else:
+                flag = "03"
+            os = flag + args[1]
+            self.input(os)
+            return
          if (len(args) == 3):
             self.ecc = args[2]
          else:
             self.ecc = secp256r1 # default curve
          self.x = inthex_to_long(args[0]) % self.ecc.p
          self.y = inthex_to_long(args[1]) % self.ecc.p
+
          # Do not check of point is on the curve when it's point at infinity
          if(not self.is_infinity()):
             self.is_on_curve()
@@ -205,7 +224,7 @@ class ECPoint:
 #      return self.multiply(left)   # switched to Jacobian version
       return self.multiplyJ(left)
    def __str__(self):
-     return "[" + hex(self.x) + "], [" + hex(self.y) + "]" 
+     return "[" + hex(self.x) + "], [" + hex(self.y) + "]"
 
    def is_on_curve(self):
       'Checking that (x,y) is on the curve: y^2 = x^3 + a*x + b'
@@ -251,7 +270,7 @@ class ECPoint:
 
    def multiply(self, scalar):
       k = inthex_to_long(scalar) % self.ecc.n
-      bl = bitLen(k) 
+      bl = bitLen(k)
       if (bl == 0):
          return ECPoint(0, 0, self.ecc)
       if (bl == 1):
@@ -265,7 +284,7 @@ class ECPoint:
 
    def multiplyJ(self, scalar):
       k = inthex_to_long(scalar) % self.ecc.n
-      bl = bitLen(k) 
+      bl = bitLen(k)
       if (bl == 0):
          return ECPoint(0, 0, self.ecc)
       if (bl == 1):
@@ -318,7 +337,7 @@ class ECPoint:
          self.y = long(os[(2+os_len):(2+2*os_len)], 16)
          self.is_on_curve()
          return self;
- 
+
       # Bad length
       else:
          raise Exception("Bad octet string length!")
@@ -547,7 +566,7 @@ class ECDSA:
          if(res != self.pub_key):
             raise Exception("Private key and public key don't match!")
 
-   def sign(self, digest):
+   def sign(self, digest, retR_xmodn=True):
       'Signing a hash digest'
       digest = inthex_to_long(digest)
       digest = digest >> self.shr_dgst
@@ -559,10 +578,13 @@ class ECDSA:
             break
       s = modinv(k, self.ecc.n)
       s = (s * (digest + R.x * self.prv_key)) % self.ecc.n
-      r = R.x % self.ecc.n
+      if (retR_xmodn):
+          r = R.x % self.ecc.n
+      else:
+          r = R
       return (r, s)
 
-   def sign_k(self, k_in, digest):
+   def sign_k(self, k_in, digest, retR_xmodn=True):
       'Signing a hash digest, k is provided from a test vector'
       digest = inthex_to_long(digest)
       digest = digest >> self.shr_dgst
@@ -570,13 +592,20 @@ class ECDSA:
       s = modinv(k_in, self.ecc.n)
       s = (s * (digest + R.x * self.prv_key)) % self.ecc.n
       r = R.x % self.ecc.n
+      if (retR_xmodn):
+          r = R.x % self.ecc.n
+      else:
+          r = R
       return (r, s)
 
    def verify(self, digest, r, s):
       'Verifying a signature(hash digest)'
       digest = inthex_to_long(digest)
       digest = digest >> self.shr_dgst
-      r = inthex_to_long(r)
+      if isinstance(r, ECPoint):
+          r = inthex_to_long(r.x % self.ecc.n)
+      else:
+          r = inthex_to_long(r)
       s = inthex_to_long(s)
       w = modinv(s, self.ecc.n)
       u1 = (digest*w) % self.ecc.n
@@ -706,7 +735,7 @@ if __name__ == '__main__':
    right = 3*genP256
    if (left != right):
       raise Exception("Failed!")
-  
+
    # Testing double(Jacobian) vs double(Affine)
    # Version #1
    left = ECPointJ(genP256).double().add(2*genP256)
@@ -733,7 +762,7 @@ if __name__ == '__main__':
    right = 0*genP256
    if (left != right):
       raise Exception("Failed!")
-  
+
    # Testing mult(Jacobian) and mult(Affine)
    for i in range(10):
       # Jacobian
@@ -744,7 +773,7 @@ if __name__ == '__main__':
       right = genP256.multiply(k)
       if (left != right):
          raise Exception("Failed!")
-  
+
    # Testing octet string conversion with/wihtout compression
    for i in range(10):
       k = randint(1, genP256.ecc.n-1)
@@ -767,6 +796,16 @@ if __name__ == '__main__':
    to_sign = ECDSA(256, pub_key, prv_key)
    to_verify = ECDSA(256, pub_key)
    (r,s) = to_sign.sign(digest)
+   if (not to_verify.verify(digest, r, s)):
+      raise Exception("ECDSA failed!")
+
+   # Testing ECDSA-256 sign/verify with R a point
+   digest = getrandbits(256)
+   prv_key = randint(1, genP256.ecc.n-1)
+   pub_key  = prv_key*genP256
+   to_sign = ECDSA(256, pub_key, prv_key)
+   to_verify = ECDSA(256, pub_key)
+   (r,s) = to_sign.sign(digest,False)
    if (not to_verify.verify(digest, r, s)):
       raise Exception("ECDSA failed!")
 
@@ -805,7 +844,24 @@ if __name__ == '__main__':
    if (r_v != r or s_v != s):
       raise Exception("Signature does not match vector: FAILURE")
 
+   # Testing importing a point using "y0"/"y1"
+   from radix import long2hexstr
+   genP256_2 = ECPoint("compressed-y-1", long2hexstr(secp256r1.gx, bitLen(secp256r1.p)))
+   if (genP256_2 != genP256):
+      raise Exception("Point with y1 not imported correctly")
+
+   testpt = ECPoint("compressed-y-1", '7a06e6dab3cb6cc0b37657168172123854690ade9ad8e7f1aa92866fc6c7bd79')
+   print testpt
+   pub_recon_x_7A_0 = """
+                      7a 06e6 dab3 cb6c
+   c0b3 7657 1681 7212 3854 690a de9a d8e7
+   f1aa 9286 6fc6 c7bd 79
+   """.replace("\n","").replace(" ", "")
+
+   pub_recon_7A_0 = ECPoint("compressed-y-1", pub_recon_x_7A_0)
+   print pub_recon_7A_0
+   if (testpt != pub_recon_7A_0):
+       raise Exception("Point imported in 2 ways is not the same")
+
+
    print "Passed!"
-
-
-
