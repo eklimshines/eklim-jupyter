@@ -12,35 +12,32 @@ radix_8 = 2**8
 
 genP256 = ECPoint(secp256r1.gx, secp256r1.gy, secp256r1)
 
+def create1609Dot2Digest(tbs, signer_cert):
+    # - hash tbs
+    tbs_dgst = sha256(tbs.decode('hex')).hexdigest()
+    # - hash signer cert
+    signer_cert_dgst = sha256(signer_cert.decode('hex')).hexdigest()
+    # -- Hash (Hash(tbs)) || Hash (signer_cert))
+    digest = sha256((tbs_dgst + signer_cert_dgst).decode('hex')).hexdigest()
+
+    return digest
+
 def BSMSigning(bsm_tbs, pseudo_prv, pseudo_cert):
-    # Hash BSM data
-    bsm_tbs_dgst = sha256(bsm_tbs.decode('hex')).hexdigest()
-#    print("bsm_tbs_dgst: " + bsm_tbs_dgst)
+    # Create 1609.2 digest of BSM data and pseudo_cert
+    bsm_dgst = create1609Dot2Digest(bsm_tbs, pseudo_cert)
 
-    # Hash pseudonym cert
-    pseudo_cert_dgst = sha256(pseudo_cert.decode('hex')).hexdigest()
-
-#    print("bsm_tbs_dgst + pseudo_cert_dgst: " + bsm_tbs_dgst + pseudo_cert_dgst)
-    # Hash (Hash(bsm_tbs)) || Hash (pseudo_cert))
-    digest = sha256((bsm_tbs_dgst + pseudo_cert_dgst).decode('hex')).hexdigest()
-#    print("digest: " + digest)
-
+    # Sign digest
     pseudo_prv_long = long(pseudo_prv, 16)
     pseudo_pub  = pseudo_prv_long*genP256
     to_sign = ECDSA(256, pseudo_pub, pseudo_prv)
     # Generate ECDSA signature where r is a point
-    (r,s) = to_sign.sign(digest, retR_xmodn=False)
-    return (r,s, digest) #TBD: digest is temp
+    (r,s) = to_sign.sign(bsm_dgst, retR_xmodn=False)
+    return (r,s, bsm_dgst)
 
 def reconstructPub(implicit_cert, implicit_cert_tbs, pub_recon, issuer_cert, issuer_pub):
     # Reconstruct public key for implicit cert
-    # - create cert digest:
-    # -- hash implicit_cert_tbs
-    implicit_cert_tbs_dgst = sha256(implicit_cert_tbs.decode('hex')).hexdigest()
-    # -- hash ISSUER cert
-    issuer_cert_dgst = sha256(issuer_cert.decode('hex')).hexdigest()
-    # -- Hash (Hash(implicit_cert_tbs)) || Hash (issuer_cert))
-    cert_dgst = sha256((implicit_cert_tbs_dgst + issuer_cert_dgst).decode('hex')).hexdigest()
+    # - create 1609.2 digest of implicit_cert_tbs and issuer_cert
+    cert_dgst = create1609Dot2Digest(implicit_cert_tbs, issuer_cert)
 
     # - reconstruct public key:
     recon_pub = reconstructPublicKey(pub_recon, cert_dgst, issuer_pub, sec4=False, cert_dgst=True)
@@ -51,16 +48,11 @@ def BSMVerify(r, s, bsm_tbs, pseudo_cert, pseudo_cert_tbs, pub_recon, pca_cert, 
     pseudo_pub = reconstructPub(pseudo_cert, pseudo_cert_tbs, pub_recon, pca_cert, pca_pub)
 
     # Verify BSM:
-    # - create BSM digest:
-    # -- hash bsm
-    bsm_tbs_dgst = sha256(bsm_tbs.decode('hex')).hexdigest()
-    # -- hash pseudo cert
-    pseudo_cert_dgst = sha256(pseudo_cert.decode('hex')).hexdigest()
-    # -- Hash (Hash(bsm_tbs)) || Hash (pseudo_cert))
-    bsm_dgst = sha256((bsm_tbs_dgst + pseudo_cert_dgst).decode('hex')).hexdigest()
+    # Create 1609.2 digest of BSM data and pseudo_cert
+    bsm_dgst = create1609Dot2Digest(bsm_tbs, pseudo_cert)
 
     # - verify ECDSA signature on bsm_dgst
-    to_verify = ECDSA(256, pub_key)
+    to_verify = ECDSA(256, pseudo_pub)
     if (not to_verify.verify(bsm_dgst, r, s)):
         return False
     else:
@@ -74,13 +66,8 @@ def BFExpandAndReconstructKey(seed_prv, exp_val, i, j, prv_recon, pseudo_cert_tb
     bf_prv, bf_pub = bfexpandkey(i, j, exp_val, seed_prv)
 
     # Reconstruct private key for pseudo cert
-    # - create cert digest:
-    # -- hash pseudo_cert_tbs
-    pseudo_cert_tbs_dgst = sha256(pseudo_cert_tbs.decode('hex')).hexdigest()
-    # -- hash PCA cert
-    pca_cert_dgst = sha256(pca_cert.decode('hex')).hexdigest()
-    # -- Hash (Hash(pseudo_cert_tbs)) || Hash (pca_cert))
-    cert_dgst = sha256((pseudo_cert_tbs_dgst + pca_cert_dgst).decode('hex')).hexdigest()
+    # - create 1609.2 digest of implicit_cert_tbs and issuer_cert
+    cert_dgst = create1609Dot2Digest(pseudo_cert_tbs, pca_cert)
 
     # - reconstruct private key
     pseudo_prv = reconstructPrivateKey(bf_prv, cert_dgst, prv_recon, sec4=False, cert_dgst=True)
@@ -98,27 +85,7 @@ def BFExpandAndReconstructKey(seed_prv, exp_val, i, j, prv_recon, pseudo_cert_tb
     pseudo_prv = long2hexstr(pseudo_prv, bitLen(pseudo_pub.ecc.n))
     return pseudo_prv, pseudo_pub
 
-# test
-prv_key_long = randint(1, genP256.ecc.n-1)
-bsm_tbs_long = getrandbits(2000)
-pseudo_cert_long = getrandbits(3000)
-
-prv_key_str = long2hexstr(prv_key_long, 256)
-print("prv = 0x" + prv_key_str)
-bsm_tbs_str = long2hexstr(bsm_tbs_long, 2000)
-print("bsm = 0x" + bsm_tbs_str)
-pseudo_cert_str = long2hexstr(pseudo_cert_long, 3000)
-print("pseudo = 0x" + pseudo_cert_str)
-(R,s, digest) = BSMSigning(bsm_tbs_str, prv_key_str, pseudo_cert_str)
-print ("R: "), print(R)
-print ("s: " + Hex(s, radix_256))
-print ("digest: " + digest)
-
-# Verify signature:
-pub_key = prv_key_long * genP256
-to_verify = ECDSA(256, pub_key)
-if (not to_verify.verify(digest, R, s)):
-    raise Exception("ECDSA failed!")
+# Test
 
 # OBU/25155fde3fd783a3/trustedcerts/pca
 pca_cert = """
@@ -189,6 +156,7 @@ cert_exp_val = """
 9d53 e9d9 626e 647c edd7 bd6a a7fd e192
 """.replace("\n","").replace(" ", "")
 
+# Butterfly-expand and reconstruct a key pair corresponding to cert 7A_0
 pseudo_prv_7A_0, pseudo_pub_7A_0 = BFExpandAndReconstructKey(
     cert_seed_prv, cert_exp_val, 0x7A, 0, prv_recon_7A_0, pseudo_cert_tbs_7A_0, pca_cert)
 print (pseudo_prv_7A_0)
@@ -198,3 +166,17 @@ pseudo_prv_7A_0, pseudo_pub_7A_0 = BFExpandAndReconstructKey(
     cert_seed_prv, cert_exp_val, 0x7A, 0, prv_recon_7A_0, pseudo_cert_tbs_7A_0, pca_cert, pca_pub, pub_recon_7A_0)
 print (pseudo_prv_7A_0)
 print (pseudo_pub_7A_0)
+
+# Sign a BSM with the pseudonym key pair
+bsm_tbs_long = getrandbits(2000)
+bsm_tbs = long2hexstr(bsm_tbs_long, 2000)
+(R, s, digest) = BSMSigning(bsm_tbs, pseudo_prv_7A_0, pseudo_cert_7A_0)
+print ("R: "), print(R)
+print ("s: " + Hex(s, radix_256))
+
+# Verify the signed BSM
+res = BSMVerify(R, s, bsm_tbs, pseudo_cert_7A_0, pseudo_cert_tbs_7A_0, pub_recon_7A_0, pca_cert, pca_pub)
+if (res == True):
+    print ("BSM successfully verified!")
+else:
+    print ("ERROR: Failed to verify BSM")
