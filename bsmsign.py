@@ -76,6 +76,9 @@ def BFExpandAndReconstructKey(seed_prv, exp_val, i, j, prv_recon, pseudo_cert_tb
 
     pseudo_pub = pseudo_prv * genP256
 
+    # If the last parameters are present check that the public key when reconstructed
+    # from the cert (as any verifier would do) is the same as pseudo_pub which is
+    # obtained from the private key
     if (isinstance(pca_pub, ECPoint) and isinstance(pseudo_pub_recon, ECPoint)):
         recon_pseudo_pub = reconstructPublicKey(pseudo_pub_recon, cert_dgst, pca_pub, sec4=False, cert_dgst=True)
         if (recon_pseudo_pub != pseudo_pub):
@@ -124,8 +127,9 @@ c0b3 7657 1681 7212 3854 690a de9a d8e7
 f1aa 9286 6fc6 c7bd 79
 """.replace("\n","").replace(" ", "")
 
+# pseudo_cert_tbs extracted from the pseudo_cert
 pseudo_cert_tbs_7A_0 = """
-5080 8000
+                              5080 8000
 7a8e 4d44 3b14 03b3 9ffc 0000 000f 8e4d
 443b 1403 b39f fc5e 6f5b 0001 191e 2210
 8400 a983 0103 8000 7c80 01e4 8003 4801
@@ -134,12 +138,14 @@ c0b3 7657 1681 7212 3854 690a de9a d8e7
 f1aa 9286 6fc6 c7bd 79
 """.replace("\n","").replace(" ", "")
 
+# verificationKeyIndicator (reconstructionValue) from pseudo_cert_tbs
 pub_recon_x_7A_0 = """
                       7a 06e6 dab3 cb6c
 c0b3 7657 1681 7212 3854 690a de9a d8e7
 f1aa 9286 6fc6 c7bd 79
 """.replace("\n","").replace(" ", "")
 
+# Import the key as an ECPoint
 pub_recon_7A_0 = ECPoint("compressed-y-1", pub_recon_x_7A_0)
 
 prv_recon_7A_0 = """
@@ -147,11 +153,13 @@ prv_recon_7A_0 = """
 c82b f842 7997 75ec 520a c28b 31e7 d907
 """.replace("\n","").replace(" ", "")
 
+# OBU/25155fde3fd783a3/dwnl_sgn.priv
 cert_seed_prv = """
 4655 5a86 2db4 4758 e8a9 cbcb b0ab aec6
 bf91 d38d ac24 11f5 3f59 1867 4a1c b1ad
 """.replace("\n","").replace(" ", "")
 
+# OBU/25155fde3fd783a3/sgn_expnsn.key
 cert_exp_val = """
 9d53 e9d9 626e 647c edd7 bd6a a7fd e192
 """.replace("\n","").replace(" ", "")
@@ -172,6 +180,7 @@ bsm_tbs_long = getrandbits(2000)
 bsm_tbs = long2hexstr(bsm_tbs_long, 2000)
 (R, s, digest) = BSMSigning(bsm_tbs, pseudo_prv_7A_0, pseudo_cert_7A_0)
 print ("R: "), print(R)
+print ("R (1609.2): "), print(R.output(compress=True, Ieee1609Dot2=True))
 print ("s: " + Hex(s, radix_256))
 
 # Verify the signed BSM

@@ -176,6 +176,7 @@ class ECPoint:
          # create an octet-string for the compressed point to input (import) it
          # this is a bit convoluted. To avoid it, we can factor out the
          # decompression steps
+         # TODO: handle 1609.2 uncompressed points
             self.ecc = secp256r1 # default curve
             l = bitLen(self.ecc.p)
             os_len = 2*((l-1)/8+1)
@@ -297,7 +298,7 @@ class ECPoint:
       return ECPoint(acc)
 
 
-   def output(self, compress=True):
+   def output(self, compress=True, Ieee1609Dot2=False):
       'Output with/without point compression'
       self.is_on_curve()
       l = bitLen(self.ecc.p)
@@ -305,10 +306,16 @@ class ECPoint:
       if(compress):
          if(testBit(self.y,0) != 0):
             flag = "03"
+            y_str = "compressed-y-1"
          else:
             flag = "02"
-         return flag + format(self.x, "x").zfill(os_len)
+            y_str = "compressed-y-1"
+         if (Ieee1609Dot2 == False):
+            return flag + format(self.x, "x").zfill(os_len)
+         else:
+             return y_str, format(self.x, "x").zfill(os_len)
       else:
+         # TODO: handle 1609.2 uncompressed points
          return "04" + format(self.x, "x").zfill(os_len) + format(self.y, "x").zfill(os_len)
 
    def input(self, os):
@@ -862,6 +869,7 @@ if __name__ == '__main__':
    print pub_recon_7A_0
    if (testpt != pub_recon_7A_0):
        raise Exception("Point imported in 2 ways is not the same")
+   print pub_recon_7A_0.output(compress=True, Ieee1609Dot2=True)
 
 
    print "Passed!"
