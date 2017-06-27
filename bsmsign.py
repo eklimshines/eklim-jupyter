@@ -2,6 +2,7 @@ from __future__ import print_function
 import os
 from hashlib import sha256
 
+from radix import *
 from array import *
 from ecc import *
 from implicit import *
@@ -148,6 +149,8 @@ f1aa 9286 6fc6 c7bd 79
 # Import the key as an ECPoint
 pub_recon_7A_0 = ECPoint("compressed-y-1", pub_recon_x_7A_0)
 
+# OBU/25155fde3fd783a3/download/7a/
+# 7A_0.s
 prv_recon_7A_0 = """
 08fa 4ce5 2c68 b12b b8ba f94a 15d5 7aed
 c82b f842 7997 75ec 520a c28b 31e7 d907
