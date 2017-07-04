@@ -104,7 +104,7 @@ def ecies_dec(V, C, T, r, p1):
 
     if T_dec != T:
         return "-1"
-    
+
     # Decrypt k by XORing C with K1
     K1 = K1_K2[:K1_len*2]
     dec_C = long(C, 16) ^ long(K1, 16)
@@ -112,7 +112,7 @@ def ecies_dec(V, C, T, r, p1):
 
     return k
 
-        
+
 v  = "1384C31D6982D52BCA3BED8A7E60F52FECDAB44E5C0EA166815A8159E09FFB42"
 
 k1  = "9169155B08B07674CBADF75FB46A7B0D"
@@ -177,7 +177,7 @@ for v, k, p1, r, Rx, Ry in zip(v_list, k_list, p1_list, r_list, Rx_list, Ry_list
 
     print("Hash(RecipientInfo):")
     print("P1 = 0x" + k)
-    cArrayDef("", "P1", long(k, 16), len(k)/2, radix_8, False); print(os.linesep)
+    cArrayDef("", "P1", long(p1, 16), len(p1)/2, radix_8, False); print(os.linesep)
 
     print("Recipient's private key (Decryption input):")
     print("r = 0x" + r)
