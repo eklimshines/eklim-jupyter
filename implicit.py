@@ -2,7 +2,7 @@ from __future__ import print_function
 import os
 from hashlib import sha256
 
-from array import *
+from carray import *
 from ecc import *
 
 #Uncomment the following to obtain different values every time this script is run
