@@ -21,11 +21,11 @@ def create1609Dot2Digest(tbs, signer_cert):
     # -- Hash (Hash(tbs)) || Hash (signer_cert))
     digest = sha256((tbs_dgst + signer_cert_dgst).decode('hex')).hexdigest()
 
-    return digest
+    return digest, signer_cert_dgst
 
 def BSMSigning(bsm_tbs, pseudo_prv, pseudo_cert):
     # Create 1609.2 digest of BSM data and pseudo_cert
-    bsm_dgst = create1609Dot2Digest(bsm_tbs, pseudo_cert)
+    bsm_dgst, cert_dgst = create1609Dot2Digest(bsm_tbs, pseudo_cert)
 
     # Sign digest
     pseudo_prv_long = long(pseudo_prv, 16)
@@ -33,12 +33,12 @@ def BSMSigning(bsm_tbs, pseudo_prv, pseudo_cert):
     to_sign = ECDSA(256, pseudo_pub, pseudo_prv)
     # Generate ECDSA signature where r is a point
     (r,s) = to_sign.sign(bsm_dgst, retR_xmodn=False)
-    return (r,s, bsm_dgst)
+    return (r,s, bsm_dgst, cert_dgst)
 
 def reconstructPub(implicit_cert, implicit_cert_tbs, pub_recon, issuer_cert, issuer_pub):
     # Reconstruct public key for implicit cert
     # - create 1609.2 digest of implicit_cert_tbs and issuer_cert
-    cert_dgst = create1609Dot2Digest(implicit_cert_tbs, issuer_cert)
+    cert_dgst= create1609Dot2Digest(implicit_cert_tbs, issuer_cert)[0]
 
     # - reconstruct public key:
     recon_pub = reconstructPublicKey(pub_recon, cert_dgst, issuer_pub, sec4=False, cert_dgst=True)
@@ -50,7 +50,7 @@ def BSMVerify(r, s, bsm_tbs, pseudo_cert, pseudo_cert_tbs, pub_recon, pca_cert, 
 
     # Verify BSM:
     # Create 1609.2 digest of BSM data and pseudo_cert
-    bsm_dgst = create1609Dot2Digest(bsm_tbs, pseudo_cert)
+    bsm_dgst = create1609Dot2Digest(bsm_tbs, pseudo_cert)[0]
 
     # - verify ECDSA signature on bsm_dgst
     to_verify = ECDSA(256, pseudo_pub)
@@ -68,7 +68,7 @@ def BFExpandAndReconstructKey(seed_prv, exp_val, i, j, prv_recon, pseudo_cert_tb
 
     # Reconstruct private key for pseudo cert
     # - create 1609.2 digest of implicit_cert_tbs and issuer_cert
-    cert_dgst = create1609Dot2Digest(pseudo_cert_tbs, pca_cert)
+    cert_dgst = create1609Dot2Digest(pseudo_cert_tbs, pca_cert)[0]
 
     # - reconstruct private key
     pseudo_prv = reconstructPrivateKey(bf_prv, cert_dgst, prv_recon, sec4=False, cert_dgst=True)
@@ -182,7 +182,7 @@ if __name__ == '__main__':
     # Sign a BSM with the pseudonym key pair
     bsm_tbs_long = getrandbits(2000)
     bsm_tbs = long2hexstr(bsm_tbs_long, 2000)
-    (R, s, digest) = BSMSigning(bsm_tbs, pseudo_prv_7A_0, pseudo_cert_7A_0)
+    (R, s, digest, cert_dgst) = BSMSigning(bsm_tbs, pseudo_prv_7A_0, pseudo_cert_7A_0)
     print ("R: "), print(R)
     print ("R (1609.2): "), print(R.output(compress=True, Ieee1609Dot2=True))
     print ("s: " + Hex(s, radix_256))
