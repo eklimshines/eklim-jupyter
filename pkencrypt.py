@@ -1,5 +1,5 @@
-# This module encrypts data to a public key holder, i.e. of type
-# PKRecipientInfo in 1609.2, specifically certRecipInfo:
+# This module encrypts/decrypts data to a public key holder,
+# i.e. of type PKRecipientInfo in 1609.2, specifically certRecipInfo:
 # - Plaintext is encrypted with AES-CCM using a random AES key
 # - The AES key is encrypted to the recipient's public key using
 #   ECIES as specified in 1609.2
@@ -78,6 +78,8 @@ def PKDecrypt(V, C, T, recip_cert, recip_prv_key, nonce, ccm_ciphertext):
     by the sender in the encryption:
     - The AES key is decrypted with ECIES using the recipient's private key
     - The Ciphertext is decrypted with AES-CCM using the AES key
+    # Note: the recipient cert should be fetched by and matched with the
+    #       the recipient's HashedId8
 
     Inputs:
     - V:               {ec256 point} Sender's ephemeral public key; input to ECIES
@@ -95,10 +97,6 @@ def PKDecrypt(V, C, T, recip_cert, recip_prv_key, nonce, ccm_ciphertext):
     Outputs:
     - plaintext        {octet string} decrypted data
     '''
-
-    # Note: the recipient cert should be fetched by and matched with the
-    #       the recipient's HashedId8
-
     # Decrypt AES key with ECIES
     ## P1 = Hash(recipient cert)
     P1 = recip_cert_dgst = sha256(recip_cert.decode('hex')).hexdigest()

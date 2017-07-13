@@ -1,3 +1,8 @@
+# This module is used to sign/verify data using pseudonym key pairs.
+# It includes Butterfly key expansion and reconstruction of these keys.
+# Note: it is assumed that the first component of the ECDSA signature, r,
+#       is a compressed point. More options can be added to the sign/verify
+#       functions to accept other forms for r (x-only, uncompressed)
 from __future__ import print_function
 import os
 from hashlib import sha256
@@ -14,6 +19,20 @@ radix_8 = 2**8
 genP256 = ECPoint(secp256r1.gx, secp256r1.gy, secp256r1)
 
 def create1609Dot2Digest(tbs, signer_cert):
+    '''
+    Create a digest on a to-be-signed (tbs) data together with the signer's certificate
+    as per 1609.2:
+        Hash (Hash(tbs)) || Hash (signer_cert))
+
+    Inputs:
+    - tbs:         {octet string} To-be-signed data
+    - signer_cert: {octet string} Signer's certificate
+
+    Output:
+    - digest:             {octet string} Hash digest to be used in
+                                         ECDSA signing/verifying
+    - signer_cert_digest: {octet string} Hash(signer_cert)
+    '''
     # - hash tbs
     tbs_dgst = sha256(tbs.decode('hex')).hexdigest()
     # - hash signer cert
@@ -23,19 +42,53 @@ def create1609Dot2Digest(tbs, signer_cert):
 
     return digest, signer_cert_dgst
 
-def BSMSigning(bsm_tbs, pseudo_prv, pseudo_cert):
-    # Create 1609.2 digest of BSM data and pseudo_cert
-    bsm_dgst, cert_dgst = create1609Dot2Digest(bsm_tbs, pseudo_cert)
+def PseudonymSign(tbs, pseudo_prv, pseudo_cert):
+    '''
+    Generate an ECDSA signature on to-be-signed (tbs) input data.
+
+    Inputs:
+    - tbs:         {octet string} To-be-signed data
+    - pseudo_prv:  {octet string} Pseudonym private key
+    - pseudo_cert: {octet string} Pseudonym (implicit) certificate of the signer
+
+    Outputs:
+    - r:        {ec256 point}  First component of an ECDSA signature,
+                               output as a compressed point
+    - s:        {octet string} Second component of an ECDSA signature
+    - dgst:     {octet string} Hash digest that was input to the signature
+                               calculation
+    - cert_dgst {octet string} Hash digest of the signer's certificate
+
+    '''
+    # Create 1609.2 digest of tbs data and pseudo_cert
+    dgst, cert_dgst = create1609Dot2Digest(tbs, pseudo_cert)
 
     # Sign digest
     pseudo_prv_long = long(pseudo_prv, 16)
     pseudo_pub  = pseudo_prv_long*genP256
     to_sign = ECDSA(256, pseudo_pub, pseudo_prv)
     # Generate ECDSA signature where r is a point
-    (r,s) = to_sign.sign(bsm_dgst, retR_xmodn=False)
-    return (r,s, bsm_dgst, cert_dgst)
+    (r,s) = to_sign.sign(dgst, retR_xmodn=False)
+    return (r,s, dgst, cert_dgst)
 
 def reconstructPub(implicit_cert, implicit_cert_tbs, pub_recon, issuer_cert, issuer_pub):
+    '''
+    Public key reconstruction for implicit certificates.
+    To be performed by any verifier of data signed using an implicit certificate.
+
+    Inputs:
+    - implicit_cert:     {octet string} Implicit certificate
+    - implicit_cert_tbs: {octet string} To-be-signed part of the implicit certificate
+    - pub_recon:         {ec256 point}  Public key reconstruction point from the
+                                        implicit certificate
+    - issuer_cert:       {octet string} Certificate of the issuer of the implicit
+                                        certificate
+    - issuer_pub:        {ec256 point}  Issuer's public key
+
+    Outputs:
+    - recon_pub: {ec256 point} Reconstructed public key corresponding to the implicit
+                               certificate
+    '''
     # Reconstruct public key for implicit cert
     # - create 1609.2 digest of implicit_cert_tbs and issuer_cert
     cert_dgst= create1609Dot2Digest(implicit_cert_tbs, issuer_cert)[0]
@@ -45,21 +98,73 @@ def reconstructPub(implicit_cert, implicit_cert_tbs, pub_recon, issuer_cert, iss
 
     return recon_pub
 
-def BSMVerify(r, s, bsm_tbs, pseudo_cert, pseudo_cert_tbs, pub_recon, pca_cert, pca_pub):
+def PseudonymVerify(r, s, tbs, pseudo_cert, pseudo_cert_tbs, pub_recon, pca_cert, pca_pub):
+    '''
+    Verify signature on data signed with a pseudonym key:
+    - reconstruct the pseudonym public key from the pseudonym certificate and its issuer's
+      certificate
+    - compute the digest of the to-be-signed (tbs) data and the pseudonym certificate
+    - perform an ECDSA verification on the digest and signature
+    # Note: this function can be used to verify data signed by implicit certificates
+            other than pseudonym certificates; such as the enrollment, identity
+            and application certificates.
+
+    Inputs:
+    - r:               {ec256 point}  First component of an ECDSA signature,
+                                      input as a compressed point
+    - s:               {octet string} Second component of an ECDSA signature
+    - tbs:             {octet string} To-be-signed data
+    - pseudo_cert:     {octet string} Pseudonym (implicit) certificate of the signer
+    - pseudo_cert_tbs: {octet string} To-be-signed part of the pseudonym certificate
+    - pub_recon:       {ec256 point}  Public key reconstruction point from the
+                                      pseudonym certificate
+    - pca_cert:        {octet string} Certificate of the PCA that issued
+                                      the pseudonym certificate
+    - pca_pub:         {ec256 point}  PCA's public key
+
+    Outputs:
+    boolean: True if signature verified correctly; False, otherwise
+    '''
     pseudo_pub = reconstructPub(pseudo_cert, pseudo_cert_tbs, pub_recon, pca_cert, pca_pub)
+    # Verify signature:
+    # Create 1609.2 digest of tbs data and pseudo_cert
+    dgst = create1609Dot2Digest(tbs, pseudo_cert)[0]
 
-    # Verify BSM:
-    # Create 1609.2 digest of BSM data and pseudo_cert
-    bsm_dgst = create1609Dot2Digest(bsm_tbs, pseudo_cert)[0]
-
-    # - verify ECDSA signature on bsm_dgst
+    # - verify ECDSA signature on dgst
     to_verify = ECDSA(256, pseudo_pub)
-    if (to_verify.verify(bsm_dgst, r, s)):
+    if (to_verify.verify(dgst, r, s)):
         return True
     else:
         return False
 
-def BFExpandAndReconstructKey(seed_prv, exp_val, i, j, prv_recon, pseudo_cert_tbs, pca_cert, pca_pub=None, pseudo_pub_recon=None):
+def BFExpandAndReconstructKey(seed_prv, exp_val, i, j, prv_recon, pseudo_cert_tbs, pca_cert, pca_pub=None,
+                              pseudo_pub_recon=None):
+    '''
+    Butterfly key expansion and reconstruction of a pseudonym key pair.
+
+    Inputs:
+    - seed_prv:          {octet string} Seed private key (32 octets)
+    - exp_val:           {octet string} Expansion value  (16 octets)
+    - i, j:              {int/long}     16-bit i and j values from the pseudonym
+                                        certificate filename (i.e., i_j.cert)
+    - prv_recon          {octet string} Private key reconstruction value associated
+                                        with the pseudonym certificate (32 octets)
+    - pseudo_cert_tbs:   {octet string} To-be-signed part of the pseudonym certificate
+    - pca_cert:          {octet string} Certificate of the PCA that issued
+                                        the pseudonym certificate
+    [- pca_pub:          {ec256 point}  PCA's public key, optional]
+    [- pseudo_pub_recon: {ec256 point}  Public key reconstruction point from the
+                                        pseudonym certificate, optional]
+
+    Outputs:
+    - pseudo_prv:  {octet string} Pseudonym private key, ready to be used in ECDSA signing
+    - pseudo_pub:  {ec256 point}  Pseudonym public key corresponding to pseudo_prv
+    # Note: if pca_pub and pseudo_pub_recon are provided, the pseudonym public key will be
+            reconstructed, using these values and the corresponding certificates, and checked
+            that it is identical to pseudo_pub which is derived from the private key.
+            This operation is what is performed by any verifier of data signed using this
+            pseudonym key, see reconstructPub and PseudonymVerify.
+    '''
     # Disable printing in some functions
     log_print = False
 
@@ -81,7 +186,8 @@ def BFExpandAndReconstructKey(seed_prv, exp_val, i, j, prv_recon, pseudo_cert_tb
     # from the cert (as any verifier would do) is the same as pseudo_pub which is
     # obtained from the private key
     if (isinstance(pca_pub, ECPoint) and isinstance(pseudo_pub_recon, ECPoint)):
-        recon_pseudo_pub = reconstructPublicKey(pseudo_pub_recon, cert_dgst, pca_pub, sec4=False, cert_dgst=True)
+        recon_pseudo_pub = reconstructPublicKey(pseudo_pub_recon, cert_dgst, pca_pub, sec4=False,
+                                                cert_dgst=True)
         if (recon_pseudo_pub != pseudo_pub):
             raise Exception("Reconstructed private key and public key do not form a pair")
 
@@ -179,17 +285,17 @@ if __name__ == '__main__':
     print (pseudo_prv_7A_0)
     print (pseudo_pub_7A_0)
 
-    # Sign a BSM with the pseudonym key pair
-    bsm_tbs_long = getrandbits(2000)
-    bsm_tbs = long2hexstr(bsm_tbs_long, 2000)
-    (R, s, digest, cert_dgst) = BSMSigning(bsm_tbs, pseudo_prv_7A_0, pseudo_cert_7A_0)
+    # Sign data with the pseudonym key pair
+    tbs_long = getrandbits(2000)
+    tbs = long2hexstr(tbs_long, 2000)
+    (R, s, digest, cert_dgst) = PseudonymSign(tbs, pseudo_prv_7A_0, pseudo_cert_7A_0)
     print ("R: "), print(R)
     print ("R (1609.2): "), print(R.output(compress=True, Ieee1609Dot2=True))
     print ("s: " + Hex(s, radix_256))
 
-    # Verify the signed BSM
-    res = BSMVerify(R, s, bsm_tbs, pseudo_cert_7A_0, pseudo_cert_tbs_7A_0, pub_recon_7A_0, pca_cert, pca_pub)
+    # Verify the signed data
+    res = PseudonymVerify(R, s, tbs, pseudo_cert_7A_0, pseudo_cert_tbs_7A_0, pub_recon_7A_0, pca_cert, pca_pub)
     if (res == True):
-        print ("BSM successfully verified!")
+        print ("Signed data successfully verified!")
     else:
-        print ("ERROR: Failed to verify BSM")
+        print ("ERROR: Failed to verify signed data")
