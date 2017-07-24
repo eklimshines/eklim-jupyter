@@ -547,11 +547,8 @@ class ECDSA:
       digest = inthex_to_long(digest)
       digest = digest >> self.shr_dgst
       # Look for random 'k'
-      from radix import Hex  ##DBG
-      radix_256 = 2**256     ##DBG
       while True:
          k = randint(1, self.ecc.n-1)
-         print ("k: " + Hex(k, radix_256))   ##DBG
          R = k*ECPoint(self.ecc.gx, self.ecc.gy, self.ecc)
          if (not R.is_infinity()):
             break

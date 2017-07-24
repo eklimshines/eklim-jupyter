@@ -272,13 +272,13 @@ if __name__ == '__main__':
     # Butterfly-expand and reconstruct a key pair corresponding to cert 7A_0
     pseudo_prv_7A_0, pseudo_pub_7A_0 = BFExpandAndReconstructKey(
         cert_seed_prv, cert_exp_val, 0x7A, 0, prv_recon_7A_0, pseudo_cert_tbs_7A_0, pca_cert)
-    print (pseudo_prv_7A_0)
-    print (pseudo_pub_7A_0)
+    #print (pseudo_prv_7A_0)
+    #print (pseudo_pub_7A_0)
 
     pseudo_prv_7A_0, pseudo_pub_7A_0 = BFExpandAndReconstructKey(
         cert_seed_prv, cert_exp_val, 0x7A, 0, prv_recon_7A_0, pseudo_cert_tbs_7A_0, pca_cert, pca_pub, pub_recon_7A_0)
-    print (pseudo_prv_7A_0)
-    print (pseudo_pub_7A_0)
+    print ("pseudo_prv_7A_0: ", pseudo_prv_7A_0)
+    print ("pseudo_pub_7A_0: ", pseudo_pub_7A_0)
 
     # Sign data with the pseudonym key pair
     tbs_long = getrandbits(2000)
