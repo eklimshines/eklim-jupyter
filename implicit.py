@@ -5,13 +5,8 @@ from hashlib import sha256
 from carray import *
 from ecc import *
 
-#Uncomment the following to obtain different values every time this script is run
-seed(333)
-
 radix_256 = 2**256
 radix_8 = 2**8
-
-genP256 = ECPoint(secp256r1.gx, secp256r1.gy, secp256r1)
 
 def implicitCertGen(tbsCert, RU, dCA, k=None, sec4=False):
     '''
@@ -161,6 +156,9 @@ def reconstructPublicKey(PU, CertU, QCA, sec4=False, cert_dgst=False):
     return QU
 
 if __name__ == "__main__":
+    #Uncomment the following to obtain different values every time this script is run
+    seed(333)
+
     k =  "E2F9CBCEC3F28F7DFBEF044732C41119816C62909FB720B091FB8F380F1B70DC"
     tbsCert = "54686973206973206120746573742100"
     kU = "1384C31D6982D52BCA3BED8A7E60F52FECDAB44E5C0EA166815A8159E09FFB42"

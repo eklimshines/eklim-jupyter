@@ -1,3 +1,9 @@
+radix_256 = 2**256
+radix_128 = 2**128
+radix_32 = 2**32
+radix_16 = 2**16
+radix_8  = 2**8
+
 def Hex(n, radix=0):
     '''Converts n to a hex string.
        If radix is not 0, pads to the max number of characters for digits modulo the radix.

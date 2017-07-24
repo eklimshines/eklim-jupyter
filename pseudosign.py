@@ -13,11 +13,6 @@ from ecc import *
 from implicit import *
 from bfkeyexp import *
 
-radix_256 = 2**256
-radix_8 = 2**8
-
-genP256 = ECPoint(secp256r1.gx, secp256r1.gy, secp256r1)
-
 def create1609Dot2Digest(tbs, signer_cert):
     '''
     Create a digest on a to-be-signed (tbs) data together with the signer's certificate

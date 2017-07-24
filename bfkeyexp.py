@@ -5,9 +5,6 @@ from Crypto.Cipher import AES
 from carray import *
 from ecc import *
 
-#Uncomment the following to obtain different values every time this script is run
-seed(333)
-
 log_print = False
 
 def f_k_int_x(k, x):
@@ -76,29 +73,23 @@ def bfexpandkey(i, j, exp, seedprv, type="cert"):
 
     return prv, pub
 
-radix_256 = 2**256
-radix_128 = 2**128
-radix_32 = 2**32
-radix_16 = 2**16
-radix_8  = 2**8
-
-genP256 = ECPoint(secp256r1.gx, secp256r1.gy, secp256r1)
-
-a = randint(1, genP256.ecc.n-1)
-A = a*genP256
-h = randint(1, genP256.ecc.n-1)
-H = h*genP256
-
-ck = "{0:032X}".format(getrandbits(128))
-ek = "{0:032X}".format(getrandbits(128))
-i = randint(0, radix_16-1)
-j = randint(0, 19)
-
-x_cert = (i * radix_32 + j) * radix_32
-x_enc = (((radix_32 - 1) * radix_32 + i) * radix_32 + j) * radix_32
-
 if __name__ == "__main__":
     log_print = True
+    #Uncomment the following to obtain different values every time this script is run
+    seed(333)
+
+    a = randint(1, genP256.ecc.n-1)
+    A = a*genP256
+    h = randint(1, genP256.ecc.n-1)
+    H = h*genP256
+
+    ck = "{0:032X}".format(getrandbits(128))
+    ek = "{0:032X}".format(getrandbits(128))
+    i = randint(0, radix_16-1)
+    j = randint(0, 19)
+
+    x_cert = (i * radix_32 + j) * radix_32
+    x_enc = (((radix_32 - 1) * radix_32 + i) * radix_32 + j) * radix_32
 
     print("""
 Test vectors for Butterfly Expansion Function
