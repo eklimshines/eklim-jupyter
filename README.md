@@ -2,7 +2,7 @@ Crypto Test Vectors
 ===================
 
 This directory contains test vectors for the following functions as specified 
-[here](https://wiki.campllc.org/display/SP/Modifications+to+Crypto+Primitives).
+[here](https://wiki.campllc.org/display/SCP/Special+Cryptographic+Primitives+in+SCMS).
 
 Additionally there are test vectors for crypto functions needed for encryption
 and signing/verification.
