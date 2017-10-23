@@ -278,7 +278,7 @@ class ECPoint:
             y_str = "compressed-y-1"
          else:
             flag = "02"
-            y_str = "compressed-y-1"
+            y_str = "compressed-y-0"
          if (Ieee1609Dot2 == False):
             return flag + format(self.x, "x").zfill(os_len)
          else:
