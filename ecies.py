@@ -99,7 +99,7 @@ def ecies_dec(V, C, T, r, p1):
     K2 = K1_K2[K1_len*2:]
     T_dec = sha256_hmac(K2, C)
 
-    if T_dec != T:
+    if T_dec.upper() != T.upper():
         return "-1"
 
     # Decrypt k by XORing C with K1
