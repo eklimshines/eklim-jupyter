@@ -91,14 +91,14 @@ if __name__ == "__main__":
   #     (tbsEcr can then be interpreted as a ToBeSignedEncryptedCertificateResponse)
   # let encData = ToBeSignedEncryptedCertificateResponse.encrypted-cert.content.encryptedData
 
-    # encData.recipients[0].enckKey.eciesNistP256.v
+    # encData.recipients[0].encKey.eciesNistP256.v
     # NOTE: make sure v is set to the correct point type (y-0 / y-1)
     v = ECPoint("compressed-y-0","85277F54BB51CD3C4E5904F4EE56D92CF622C32C0E40B4BB125A98FD623CE317")
 
-    # encData.recipients[0].enckKey.eciesNistP256.c
+    # encData.recipients[0].encKey.eciesNistP256.c
     c = "BABE3D42930283127352AEE69F0697BF"
 
-    # encData.recipients[0].enckKey.eciesNistP256.t
+    # encData.recipients[0].encKey.eciesNistP256.t
     t = "88B0A62209A7348FF8D2A38F0A5C57B5"
 
     # encData.ciphertext.aes128ccm.nonce
@@ -109,7 +109,7 @@ if __name__ == "__main__":
 
 
   # We can now use the butterfly params with i,j to derive an ECIES key to decrypt (v,c,t),
-  # which decrypts to an AES key, which we can tehn use to decrypt the ciphertext.
+  # which decrypts to an AES key, which we can then use to decrypt the ciphertext.
   # The included helper function does the butterfly expansion + hybrid decryption in one shot.
 
     print("\nDecrypting SignedEncryptedCertificateResponse...")
@@ -135,10 +135,10 @@ if __name__ == "__main__":
   # These are pulled out of the pseudo cert
 
     # pseudoCert.toBeSigned
-    # NOTE: Make sure correct point type is set (y-0 / y-1)
     pseudoTbs = "50800000942B71029C5CF41E154FCB778500011A0E13108400A983010180034801028001208000800126800081828AD4C0ECC95CE234750673D5F359B5AB36AB57312F8FAC4114E9C86F8D8CDF72"
 
     # The public reconstruction value: pseudoCert.toBeSigned.verifyKeyIndicator.reconstructionValue
+    # NOTE: Make sure correct point type is set (y-0 / y-1)
     pubRecon = ECPoint("compressed-y-0", "8AD4C0ECC95CE234750673D5F359B5AB36AB57312F8FAC4114E9C86F8D8CDF72")
 
   # We also need information about the PCA to reconstruct keys and verify signatures
