@@ -14,7 +14,7 @@ if options.file_to_open:
         file_contents = data_file.read()
 
 
-    full_output_path = "C:\Users\Julian\Google Drive\eTrans Top Level\Clients\CAMP\MAI Project\MAI Tests\Shared Program Files\sign_explicit_python_out.oer"
+    full_output_path = "C:\Users\Shirali\Google Drive\eTrans Top Level\Clients\CAMP\MAI Project\MAI Tests\Shared Program Files\sign_explicit_python_out.oer"
 
     with open(full_output_path,'w') as new_file:
         new_file.write(file_contents)
