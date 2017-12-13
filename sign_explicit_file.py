@@ -6,11 +6,11 @@ parser.add_option("-f", "--file", dest="file_to_open", help="file containing dat
 parser.add_option("-d", "--data", dest="data", help="to be signed data", metavar="DATA")
 parser.add_option("-p", "--privatekey", dest="privKey", help="private key", metavar="PRIV")
 parser.add_option("-c", "--certificate", dest="certificate", help="certificate to use", metavar="CERT")
-parser.add_option("-z", "--write", dest="write",help="write to file or not", metavar="read")
+parser.add_option("-z", "--write", dest="write",help="write to file or not", metavar="read", default = False)
 
 (options,args)=parser.parse_args()
 
-if options.write.lower() == "true":
+if options.write:
     with open(options.file_to_open, 'r') as data_file:
         file_contents = data_file.read()
 

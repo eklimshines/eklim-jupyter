@@ -12,7 +12,7 @@ parser.add_option("-c", "--contentfile", dest="contentfile", help="content file"
 parser.add_option("-r", "--recipk", dest="recipkey", help="recipient's public key", metavar="RECIPK")
 parser.add_option("-p", "--plaint", dest="plaintext",help="contents of signedmbr in hex", metavar="PT")
 parser.add_option("-y", "--ypoint", dest="ypoint",help="compressed y point to use, 0 or 1", metavar="YPT")
-parser.add_option("-z", "--write", dest="write",help="write to file or not", metavar="read")
+parser.add_option("-z", "--write", dest="write",help="write to file or not", metavar="read", default = False)
 
 (options,args)=parser.parse_args()
 from pkencrypt import *
@@ -25,7 +25,7 @@ cert_in=open(options.certfile,"r")
 recip_cert = binascii.hexlify(cert_in.read())
 cert_in.close()
 
-if options.write.lower() == "true":
+if options.write:
     full_output_path = "C:\Users\Shirali\Google Drive\eTrans Top Level\Clients\CAMP\MAI Project\MAI Tests\Shared Program Files\etencrypt_python_out.oer"
     # Plaintext
     with open(options.contentfile, 'rb') as data_file:
