@@ -12,7 +12,7 @@ parser.add_option("-c", "--certificate", dest="certificate", help="certificate t
 with open(options.file_to_open, 'rb') as data_file:
     file_contents = data_file.read()
     file_hex = ''.join( [ "%02X " % ord( x ) for x in file_contents ] ).strip()
-    file_output_path = "C:/Users/Shirali/Google Drive/eTrans Top Level/Clients/AMP/MAI Project/MAI Tests/Shared Program Files/file_hex.txt"
+    file_output_path = "C:/Users/Shirali/Google Drive/eTrans Top Level/Clients/CAMP/MAI Project/MAI Tests/Shared Program Files/file_hex.txt"
 
     file_to_write = open(file_output_path, "wb")
     file_to_write.write(file_hex)
