@@ -8,7 +8,7 @@ import binascii
 from optparse import OptionParser
 parser=OptionParser()
 parser.add_option("-f", "--file", dest="certfile", help="file for cert that public key is derived from", metavar="FILE")
-parser.add_option("-cf", "--contentfile", dest="contentfile", help="content file", metavar="CONTENTFILE")
+parser.add_option("-c", "--contentfile", dest="contentfile", help="content file", metavar="CONTENTFILE")
 parser.add_option("-r", "--recipk", dest="recipkey", help="recipient's public key", metavar="RECIPK")
 parser.add_option("-p", "--plaint", dest="plaintext",help="contents of signedmbr in hex", metavar="PT")
 parser.add_option("-y", "--ypoint", dest="ypoint",help="compressed y point to use, 0 or 1", metavar="YPT")
