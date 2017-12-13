@@ -24,9 +24,13 @@ cert_in=open(options.certfile,"rb")
 recip_cert = binascii.hexlify(cert_in.read())
 cert_in.close()
 
+full_output_path = "C:\Users\Shirali\Google Drive\eTrans Top Level\Clients\CAMP\MAI Project\MAI Tests\Shared Program Files\etencrypt_python_out.oer"
 # Plaintext
 with open(options.contentfile, 'rb') as data_file:
     file_contents = data_file.read()
+
+with open(full_output_path,'wb') as new_file:
+    new_file.write(file_contents)
 
 plaintext =  file_contents
 

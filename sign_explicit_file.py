@@ -12,6 +12,11 @@ parser.add_option("-c", "--certificate", dest="certificate", help="certificate t
 with open(options.file_to_open, 'rb') as data_file:
     file_contents = data_file.read()
 
+full_output_path = "C:\Users\Shirali\Google Drive\eTrans Top Level\Clients\CAMP\MAI Project\MAI Tests\Shared Program Files\sign_explicit_python_out.oer"
+
+with open(full_output_path,'wb') as new_file:
+    new_file.write(file_contents)
+
 (R, s, digest,cert_dgst) = PseudonymSign(file_contents, options.privKey, options.certificate)
 print(R.output(compress=True, Ieee1609Dot2=True))
 print (Hex(s, radix_256))
