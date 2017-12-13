@@ -12,6 +12,7 @@ parser.add_option("-c", "--contentfile", dest="contentfile", help="content file"
 parser.add_option("-r", "--recipk", dest="recipkey", help="recipient's public key", metavar="RECIPK")
 parser.add_option("-p", "--plaint", dest="plaintext",help="contents of signedmbr in hex", metavar="PT")
 parser.add_option("-y", "--ypoint", dest="ypoint",help="compressed y point to use, 0 or 1", metavar="YPT")
+parser.add_option("-z", "--write", dest="write",help="write to file or not", metavar="read")
 
 (options,args)=parser.parse_args()
 from pkencrypt import *
@@ -24,19 +25,22 @@ cert_in=open(options.certfile,"r")
 recip_cert = binascii.hexlify(cert_in.read())
 cert_in.close()
 
-full_output_path = "C:\Users\Shirali\Google Drive\eTrans Top Level\Clients\CAMP\MAI Project\MAI Tests\Shared Program Files\etencrypt_python_out.oer"
-# Plaintext
-with open(options.contentfile, 'rb') as data_file:
-    file_contents = data_file.read()
+if options.write.lower() == "true":
+    full_output_path = "C:\Users\Shirali\Google Drive\eTrans Top Level\Clients\CAMP\MAI Project\MAI Tests\Shared Program Files\etencrypt_python_out.oer"
+    # Plaintext
+    with open(options.contentfile, 'rb') as data_file:
+        file_contents = data_file.read()
 
-with open(full_output_path,'wb') as new_file:
-    new_file.write(file_contents)
+    with open(full_output_path,'wb') as new_file:
+        new_file.write(file_contents)
 
-plaintext =  file_contents
+    plaintext = file_contents
+else:
+    plaintext =  options.plaintext
 
 # Encrypt to recipient's public key
 recip_HashedId8, V, C, T, nonce, ccm_ciphertext = \
-    PKEncrypt(file_contents, recip_pub, recip_cert)
+    PKEncrypt(plaintext, recip_pub, recip_cert)
 
 print(recip_HashedId8)
 V_out = V.output(compress=True, Ieee1609Dot2=True)
