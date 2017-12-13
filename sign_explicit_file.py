@@ -10,17 +10,20 @@ parser.add_option("-c", "--certificate", dest="certificate", help="certificate t
 (options,args)=parser.parse_args()
 
 if options.file_to_open:
+
+    #print "Opening file %s" %(options.file_to_open)
     with open(options.file_to_open, 'r') as data_file:
         file_contents = data_file.read()
     data_file.close()
-
+    #print "Here are the file contents for the data sent o sign_explicit_file.py %s" %(file_contents)
+    #print file_contents
 
     full_output_path = "C:\Users\Shirali\Google Drive\eTrans Top Level\Clients\CAMP\MAI Project\MAI Tests\Shared Program Files\sign_explicit_python_out.oer"
+    #print "Outputting what python read from %s file to %s" %(full_output_path, options.file_to_open)
 
     with open(full_output_path,'w') as new_file:
         new_file.write(file_contents)
     new_file.close()
-
     the_data = file_contents
 else:
     the_data = options.data
