@@ -29,9 +29,11 @@ if options.contentfile:
     # Plaintext
     with open(options.contentfile, 'r') as data_file:
         file_contents = data_file.read()
+    data_file.close()
 
     with open(full_output_path,'w') as new_file:
         new_file.write(file_contents)
+    new_file.close()
 
     plaintext = file_contents
 
