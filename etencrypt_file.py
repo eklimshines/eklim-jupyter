@@ -19,7 +19,7 @@ from pkencrypt import *
 recip_pub = ECPoint("compressed-y-"+options.ypoint,options.recipkey)
 
 # Recipient's cert
-cert_in=open(options.certfile,"rb")
+cert_in=open(options.certfile,"r")
 # MA cert
 recip_cert = binascii.hexlify(cert_in.read())
 cert_in.close()

@@ -9,7 +9,7 @@ parser.add_option("-c", "--certificate", dest="certificate", help="certificate t
 
 
 (options,args)=parser.parse_args()
-with open(options.file_to_open, 'rb') as data_file:
+with open(options.file_to_open, 'r') as data_file:
     file_contents = data_file.read()
 
 full_output_path = "C:\Users\Shirali\Google Drive\eTrans Top Level\Clients\CAMP\MAI Project\MAI Tests\Shared Program Files\sign_explicit_python_out.oer"
