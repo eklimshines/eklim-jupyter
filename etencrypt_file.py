@@ -36,7 +36,7 @@ plaintext =  file_contents
 
 # Encrypt to recipient's public key
 recip_HashedId8, V, C, T, nonce, ccm_ciphertext = \
-    PKEncrypt(plaintext, recip_pub, recip_cert)
+    PKEncrypt(file_contents, recip_pub, recip_cert)
 
 print(recip_HashedId8)
 V_out = V.output(compress=True, Ieee1609Dot2=True)
