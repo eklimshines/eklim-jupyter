@@ -25,19 +25,9 @@ recip_cert = binascii.hexlify(cert_in.read())
 cert_in.close()
 
 if options.contentfile:
-    full_output_path = "C:\Users\Shirali\Google Drive\eTrans Top Level\Clients\CAMP\MAI Project\MAI Tests\Shared Program Files\etencrypt_python_out.oer"
-    # Plaintext
-    #print("Opening the file %s to read it.") %(full_output_path)
     with open(options.contentfile, 'r') as data_file:
         file_contents = data_file.read()
     data_file.close()
-    #print ("Printing the contents of the file.")
-    #print (file_contents)
-
-    with open(full_output_path,'w') as new_file:
-        new_file.write(file_contents)
-    new_file.close()
-
     plaintext = file_contents
 else:
     plaintext =  options.plaintext
