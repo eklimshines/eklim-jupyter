@@ -37,6 +37,6 @@ print(dataNonce)
 print(dataKey)
 print(recipCiphertext)
 print(recipNonce)
-print(options.recipkey)
+
 
 
