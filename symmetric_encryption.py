@@ -10,8 +10,6 @@ parser.add_option("-r", "--recipkey", dest="recipkey", help="recipkey", metavar=
 parser.add_option("-d", "--data", dest="data", help="data", metavar="DATA")
 (options,args)=parser.parse_args()
 
-options.recipkey = "FB29BCBED09E7CBC1066C73525C857C2"
-
 recip_cert_dgst = sha256(options.recipkey.decode('hex')).hexdigest()
 recip_HashedId8 = recip_cert_dgst[-16:]
 plaintext = options.data
