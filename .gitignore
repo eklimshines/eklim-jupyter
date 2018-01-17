@@ -1,2 +1,19 @@
 *.pyc
+
+#intellij files
 .idea
+*.iml
+
+# Compiled class file
+*.class
+
+# Log file
+*.log
+
+# Package Files #
+*.jar
+*.war
+
+#spring boot
+config
+target
