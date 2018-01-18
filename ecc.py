@@ -1,4 +1,4 @@
-from types import * 
+from types import *
 from random import *
 from hashlib import *
 
@@ -40,7 +40,7 @@ def egcd(a, b):
    else:
       g, y, x = egcd(b % a, a)
       return (g, x - (b // a) * y, y)
- 
+
 def modinv(a, m):
    a = a % m
    g, x, y = egcd(a, m)
@@ -89,49 +89,18 @@ class ECurve:
       self.n  = inthex_to_long(n)
       self.h  = inthex_to_long(h)
    def __cmp__(self, c):
-      if(self.p  == c.p  and 
-         self.a  == c.a  and 
-         self.b  == c.b  and 
-         self.gx == c.gx and 
-         self.gy == c.gy and 
-         self.n  == c.n  and 
+      if(self.p  == c.p  and
+         self.a  == c.a  and
+         self.b  == c.b  and
+         self.gx == c.gx and
+         self.gy == c.gy and
+         self.n  == c.n  and
          self.h  == c.h ):
          return 0
       else:
          return 1
    def __str__(self):
-      return self.name 
-
-#
-# Curves constant objects
-#
-
-'''secp256r1 curve with p=(2**224)*(2**32-1)+2**192+2**96-1
-'''
-secp256r1 = ECurve(
-   "secp256r1",
-   "FFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFF",  # p
-   "FFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFC",  # a
-   "5AC635D8AA3A93E7B3EBBD55769886BC651D06B0CC53B0F63BCE3C3E27D2604B",  # b
-   "6B17D1F2E12C4247F8BCE6E563A440F277037D812DEB33A0F4A13945D898C296",  # gx
-   "4FE342E2FE1A7F9B8EE7EB4A7C0F9E162BCE33576B315ECECBB6406837BF51F5",  # gy
-   "FFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551",  # n
-   1                                                                    # h
-   )
-
-'''secp384r1 curve with p=2**384-2**128-2**96+2**32-1
-'''
-secp384r1 = ECurve(
-   "secp384r1",
-   "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFFFF0000000000000000FFFFFFFF",  # p
-   "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFFFF0000000000000000FFFFFFFC",  # a
-   "B3312FA7E23EE7E4988E056BE3F82D19181D9C6EFE8141120314088F5013875AC656398D8A2ED19D2A85C8EDD3EC2AEF",  # b
-   "AA87CA22BE8B05378EB1C71EF320AD746E1D3B628BA79B9859F741E082542A385502F25DBF55296C3A545E3872760AB7",  # gx
-   "3617DE4A96262C6F5D9E98BF9292DC29F8F41DBD289A147CE9DA3113B5F0B8C00A60B1CE1D7E819D7A431D7C90EA0E5F",  # gy
-   "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC7634D81F4372DDF581A0DB248B0A77AECEC196ACCC52973",  # n
-   1                                                                                                    # h
-   )
-
+      return self.name
 
 #
 # ECC point class
@@ -168,12 +137,32 @@ class ECPoint:
             self.ecc = args[0]
             self.input(args[1])
             return
+         if (args[0] in ["compressed-y-0", "compressed-y-1"]):
+         # Case of 1609.2 point format
+         # For compressed points:
+         # args[0] = {"compressed-y-0", "compressed-y-1"}
+         # args[1] is a hex string for x-coord.
+         # create an octet-string for the compressed point to input (import) it
+         # this is a bit convoluted. To avoid it, we can factor out the
+         # decompression steps
+         # TODO: handle 1609.2 uncompressed points
+            self.ecc = secp256r1 # default curve
+            l = bitLen(self.ecc.p)
+            os_len = 2*((l-1)/8+1)
+            if(args[0] == "compressed-y-0"):
+                flag = "02"
+            else:
+                flag = "03"
+            os = flag + args[1]
+            self.input(os)
+            return
          if (len(args) == 3):
             self.ecc = args[2]
          else:
             self.ecc = secp256r1 # default curve
          self.x = inthex_to_long(args[0]) % self.ecc.p
          self.y = inthex_to_long(args[1]) % self.ecc.p
+
          # Do not check of point is on the curve when it's point at infinity
          if(not self.is_infinity()):
             self.is_on_curve()
@@ -205,7 +194,7 @@ class ECPoint:
 #      return self.multiply(left)   # switched to Jacobian version
       return self.multiplyJ(left)
    def __str__(self):
-     return "[" + hex(self.x) + "], [" + hex(self.y) + "]" 
+     return "[" + hex(self.x) + "], [" + hex(self.y) + "]"
 
    def is_on_curve(self):
       'Checking that (x,y) is on the curve: y^2 = x^3 + a*x + b'
@@ -251,7 +240,7 @@ class ECPoint:
 
    def multiply(self, scalar):
       k = inthex_to_long(scalar) % self.ecc.n
-      bl = bitLen(k) 
+      bl = bitLen(k)
       if (bl == 0):
          return ECPoint(0, 0, self.ecc)
       if (bl == 1):
@@ -265,7 +254,7 @@ class ECPoint:
 
    def multiplyJ(self, scalar):
       k = inthex_to_long(scalar) % self.ecc.n
-      bl = bitLen(k) 
+      bl = bitLen(k)
       if (bl == 0):
          return ECPoint(0, 0, self.ecc)
       if (bl == 1):
@@ -278,7 +267,7 @@ class ECPoint:
       return ECPoint(acc)
 
 
-   def output(self, compress=True):
+   def output(self, compress=True, Ieee1609Dot2=False):
       'Output with/without point compression'
       self.is_on_curve()
       l = bitLen(self.ecc.p)
@@ -286,10 +275,16 @@ class ECPoint:
       if(compress):
          if(testBit(self.y,0) != 0):
             flag = "03"
+            y_str = "compressed-y-1"
          else:
             flag = "02"
-         return flag + format(self.x, "x").zfill(os_len)
+            y_str = "compressed-y-0"
+         if (Ieee1609Dot2 == False):
+            return flag + format(self.x, "x").zfill(os_len)
+         else:
+             return y_str, format(self.x, "x").zfill(os_len)
       else:
+         # TODO: handle 1609.2 uncompressed points
          return "04" + format(self.x, "x").zfill(os_len) + format(self.y, "x").zfill(os_len)
 
    def input(self, os):
@@ -318,7 +313,7 @@ class ECPoint:
          self.y = long(os[(2+os_len):(2+2*os_len)], 16)
          self.is_on_curve()
          return self;
- 
+
       # Bad length
       else:
          raise Exception("Bad octet string length!")
@@ -547,7 +542,7 @@ class ECDSA:
          if(res != self.pub_key):
             raise Exception("Private key and public key don't match!")
 
-   def sign(self, digest):
+   def sign(self, digest, retR_xmodn=True):
       'Signing a hash digest'
       digest = inthex_to_long(digest)
       digest = digest >> self.shr_dgst
@@ -559,10 +554,13 @@ class ECDSA:
             break
       s = modinv(k, self.ecc.n)
       s = (s * (digest + R.x * self.prv_key)) % self.ecc.n
-      r = R.x % self.ecc.n
+      if (retR_xmodn):
+          r = R.x % self.ecc.n
+      else:
+          r = R
       return (r, s)
 
-   def sign_k(self, k_in, digest):
+   def sign_k(self, k_in, digest, retR_xmodn=True):
       'Signing a hash digest, k is provided from a test vector'
       digest = inthex_to_long(digest)
       digest = digest >> self.shr_dgst
@@ -570,13 +568,20 @@ class ECDSA:
       s = modinv(k_in, self.ecc.n)
       s = (s * (digest + R.x * self.prv_key)) % self.ecc.n
       r = R.x % self.ecc.n
+      if (retR_xmodn):
+          r = R.x % self.ecc.n
+      else:
+          r = R
       return (r, s)
 
    def verify(self, digest, r, s):
       'Verifying a signature(hash digest)'
       digest = inthex_to_long(digest)
       digest = digest >> self.shr_dgst
-      r = inthex_to_long(r)
+      if isinstance(r, ECPoint):
+          r = inthex_to_long(r.x % self.ecc.n)
+      else:
+          r = inthex_to_long(r)
       s = inthex_to_long(s)
       w = modinv(s, self.ecc.n)
       u1 = (digest*w) % self.ecc.n
@@ -588,16 +593,45 @@ class ECDSA:
          return False
 
 #
+# Curves constant objects
+#
+
+'''secp256r1 curve with p=(2**224)*(2**32-1)+2**192+2**96-1
+'''
+secp256r1 = ECurve(
+   "secp256r1",
+   "FFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFF",  # p
+   "FFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFC",  # a
+   "5AC635D8AA3A93E7B3EBBD55769886BC651D06B0CC53B0F63BCE3C3E27D2604B",  # b
+   "6B17D1F2E12C4247F8BCE6E563A440F277037D812DEB33A0F4A13945D898C296",  # gx
+   "4FE342E2FE1A7F9B8EE7EB4A7C0F9E162BCE33576B315ECECBB6406837BF51F5",  # gy
+   "FFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551",  # n
+   1                                                                    # h
+   )
+genP256 = ECPoint(secp256r1.gx, secp256r1.gy, secp256r1)
+infP256 = ECPoint(0, 0, secp256r1)
+#print "Generator point (P256):", genP256
+
+'''secp384r1 curve with p=2**384-2**128-2**96+2**32-1
+'''
+secp384r1 = ECurve(
+   "secp384r1",
+   "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFFFF0000000000000000FFFFFFFF",  # p
+   "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFFFF0000000000000000FFFFFFFC",  # a
+   "B3312FA7E23EE7E4988E056BE3F82D19181D9C6EFE8141120314088F5013875AC656398D8A2ED19D2A85C8EDD3EC2AEF",  # b
+   "AA87CA22BE8B05378EB1C71EF320AD746E1D3B628BA79B9859F741E082542A385502F25DBF55296C3A545E3872760AB7",  # gx
+   "3617DE4A96262C6F5D9E98BF9292DC29F8F41DBD289A147CE9DA3113B5F0B8C00A60B1CE1D7E819D7A431D7C90EA0E5F",  # gy
+   "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC7634D81F4372DDF581A0DB248B0A77AECEC196ACCC52973",  # n
+   1                                                                                                    # h
+   )
+genP384 = ECPoint(secp384r1.gx, secp384r1.gy, secp384r1)
+infP384 = ECPoint(0, 0, secp384r1)
+#print "Generator point (P384):", genP384
+
+#
 # Tests (only runing them when invoked directly, but not when importing it)
 #
 if __name__ == '__main__':
-
-   genP256 = ECPoint(secp256r1.gx, secp256r1.gy, secp256r1)
-   infP256 = ECPoint(0, 0, secp256r1)
-   #print "Generator point (P256):", genP256
-   genP384 = ECPoint(secp384r1.gx, secp384r1.gy, secp384r1)
-   infP384 = ECPoint(0, 0, secp384r1)
-   #print "Generator point (P384):", genP384
 
    # Testing add() and double(), 2*(2*P) = 2*P+P+P
    left = genP256 + genP256
@@ -706,7 +740,7 @@ if __name__ == '__main__':
    right = 3*genP256
    if (left != right):
       raise Exception("Failed!")
-  
+
    # Testing double(Jacobian) vs double(Affine)
    # Version #1
    left = ECPointJ(genP256).double().add(2*genP256)
@@ -733,7 +767,7 @@ if __name__ == '__main__':
    right = 0*genP256
    if (left != right):
       raise Exception("Failed!")
-  
+
    # Testing mult(Jacobian) and mult(Affine)
    for i in range(10):
       # Jacobian
@@ -744,7 +778,7 @@ if __name__ == '__main__':
       right = genP256.multiply(k)
       if (left != right):
          raise Exception("Failed!")
-  
+
    # Testing octet string conversion with/wihtout compression
    for i in range(10):
       k = randint(1, genP256.ecc.n-1)
@@ -767,6 +801,16 @@ if __name__ == '__main__':
    to_sign = ECDSA(256, pub_key, prv_key)
    to_verify = ECDSA(256, pub_key)
    (r,s) = to_sign.sign(digest)
+   if (not to_verify.verify(digest, r, s)):
+      raise Exception("ECDSA failed!")
+
+   # Testing ECDSA-256 sign/verify with R a point
+   digest = getrandbits(256)
+   prv_key = randint(1, genP256.ecc.n-1)
+   pub_key  = prv_key*genP256
+   to_sign = ECDSA(256, pub_key, prv_key)
+   to_verify = ECDSA(256, pub_key)
+   (r,s) = to_sign.sign(digest,False)
    if (not to_verify.verify(digest, r, s)):
       raise Exception("ECDSA failed!")
 
@@ -805,7 +849,25 @@ if __name__ == '__main__':
    if (r_v != r or s_v != s):
       raise Exception("Signature does not match vector: FAILURE")
 
+   # Testing importing a point using "y0"/"y1"
+   from radix import long2hexstr
+   genP256_2 = ECPoint("compressed-y-1", long2hexstr(secp256r1.gx, bitLen(secp256r1.p)))
+   if (genP256_2 != genP256):
+      raise Exception("Point with y1 not imported correctly")
+
+   testpt = ECPoint("compressed-y-1", '7a06e6dab3cb6cc0b37657168172123854690ade9ad8e7f1aa92866fc6c7bd79')
+   print testpt
+   pub_recon_x_7A_0 = """
+                      7a 06e6 dab3 cb6c
+   c0b3 7657 1681 7212 3854 690a de9a d8e7
+   f1aa 9286 6fc6 c7bd 79
+   """.replace("\n","").replace(" ", "")
+
+   pub_recon_7A_0 = ECPoint("compressed-y-1", pub_recon_x_7A_0)
+   print pub_recon_7A_0
+   if (testpt != pub_recon_7A_0):
+       raise Exception("Point imported in 2 ways is not the same")
+   print pub_recon_7A_0.output(compress=True, Ieee1609Dot2=True)
+
+
    print "Passed!"
-
-
-

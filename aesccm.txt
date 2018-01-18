@@ -7,12 +7,12 @@ It is based on NIST SP 800-38C (and RFC 3610) with the following:
 - n=12, i.e. Nonce length is 12 octets
 - q=3, i.e. the message length in octets is encoded in 3 octets
 
-Inputs:
+Encryption Inputs:
 - key:       {octet string} AES-CCM key, K (hex encoded bytes)
 - nonce:     {octet string} nonce, N (hex encoded bytes)
 - plaintext: {octet string} plaintext to be encrypted and authenticated, P (hex encoded bytes)
 
-Output:
+Encryption Output:
 ciphertext || tag = C || T {octet string}
 
 Test Vector #1:
